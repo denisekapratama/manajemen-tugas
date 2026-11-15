@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="id" data-theme="light">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>StudentHub - Dashboard Mahasiswa</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fredoka:wght@500;600&family=Plus+Jakarta+Sans:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app">
+
+    <header class="topbar">
+        <div class="brand">
+            <span class="logo">S</span>
+            <div>
+                <h1>StudentHub</h1>
+                <p id="todayLabel"></p>
+            </div>
+        </div>
+        <button type="button" id="themeToggle" class="switch" role="switch" aria-checked="false" aria-label="Aktifkan mode gelap">
+            <span class="track"><span class="knob"></span></span>
+            <span id="themeText">Terang</span>
+        </button>
+    </header>
+
+    <div class="grid">
+        <div class="main">
+
+            <section class="hero">
+                <div class="hero-text">
+                    <h2 id="greeting"></h2>
+                    <p id="greetingSub"></p>
+                </div>
+
+                <div class="calendar">
+                    <div class="cal-head">
+                        <button type="button" id="prevMonth" aria-label="Bulan sebelumnya">&lsaquo;</button>
+                        <h3 id="monthLabel"></h3>
+                        <button type="button" id="nextMonth" aria-label="Bulan berikutnya">&rsaquo;</button>
+                    </div>
+                    <div class="weekdays">
+                        <span>Sen</span><span>Sel</span><span>Rab</span><span>Kam</span><span>Jum</span><span>Sab</span><span>Min</span>
+                    </div>
+                    <div id="calendarGrid" class="cal-grid"></div>
+                    <p class="cal-hint">Klik tanggal bertitik untuk lompat ke tugasnya.</p>
+                </div>
+            </section>
+
+            <section class="card tasks">
+                <h2>Daftar Tugas</h2>
+
+                <form id="taskForm">
+                    <input type="text" id="taskInput" placeholder="Tambah tugas baru..." aria-label="Nama tugas" autocomplete="off" required>
+                    <input type="text" id="courseInput" placeholder="Mata kuliah" aria-label="Mata kuliah" autocomplete="off">
+                    <input type="date" id="deadlineInput" aria-label="Tenggat" required>
+                    <button type="submit">Tambah</button>
+                </form>
+
+                <ul id="taskList"></ul>
+                <p id="emptyMessage">Belum ada tugas. Isi form di atas, atau klik tanggal di kalender.</p>
+            </section>
+        </div>
+
+        <aside class="side">
+            <section class="card progress">
+                <h2>Progres</h2>
+                <div class="ring-wrap">
+                    <svg viewBox="0 0 120 120" class="ring" aria-hidden="true">
+                        <circle class="ring-bg" cx="60" cy="60" r="52"></circle>
+                        <circle class="ring-fg" id="ringFg" cx="60" cy="60" r="52"></circle>
+                    </svg>
+                    <div class="ring-text"><strong id="percent">0%</strong><span>selesai</span></div>
+                </div>
+                <div class="mini-stats">
+                    <div><p id="totalTasks">0</p><span>Total</span></div>
+                    <div><p id="completedTasks">0</p><span>Selesai</span></div>
+                    <div><p id="pendingTasks">0</p><span>Belum</span></div>
+                </div>
+            </section>
+
+            <section class="timer">
+                <h2>Timer Fokus</h2>
+                <div class="timer-row">
+                    <button type="button" id="timerMinus" aria-label="Kurangi 5 menit">&minus;</button>
+                    <p id="timerTime">25:00</p>
+                    <button type="button" id="timerPlus" aria-label="Tambah 5 menit">+</button>
+                </div>
+                <p id="timerNote">Satu sesi, satu tugas.</p>
+                <div class="timer-actions">
+                    <button type="button" id="timerStart">Mulai</button>
+                    <button type="button" id="timerReset" class="ghost">Atur ulang</button>
+                </div>
+            </section>
+        </aside>
+    </div>
+</div>
+<script src="script.js"></script>
+</body>
+</html>
