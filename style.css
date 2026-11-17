@@ -225,3 +225,7 @@ input[type="date"] { min-width: 0; max-width: 100%; }
     box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
 }
 .alerts-toggle { justify-self: start; }
+@media (max-width: 640px) {
+    .app { padding-top: max(env(safe-area-inset-top, 0px), 26px); }
+    .alerts { top: max(env(safe-area-inset-top, 0px), 26px); }
+}
