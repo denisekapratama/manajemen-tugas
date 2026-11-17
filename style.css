@@ -214,3 +214,7 @@ form { grid-template-columns: 1fr 1fr 1fr auto; }
 .alert { padding: 10px 14px; box-shadow: 0 6px 18px rgba(0, 0, 0, .18); }
 .alerts-more { justify-self: start; background: var(--card); color: var(--ink); box-shadow: 0 4px 12px rgba(0, 0, 0, .18); }
 select { text-overflow: ellipsis; }
+.main, .side { grid-template-columns: minmax(0, 1fr); }
+.grid { grid-template-columns: minmax(0, 1fr) 330px; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
+input[type="date"] { min-width: 0; max-width: 100%; }
