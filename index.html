@@ -25,7 +25,7 @@
             <span id="themeText">Terang</span>
         </button>
     </header>
-
+    <div id="alerts" class="alerts" aria-live="polite"></div>
     <div class="grid">
         <div class="main">
 
@@ -52,15 +52,35 @@
             <section class="card tasks">
                 <h2>Daftar Tugas</h2>
 
-                <form id="taskForm">
+                                <form id="taskForm">
                     <input type="text" id="taskInput" placeholder="Tambah tugas baru..." aria-label="Nama tugas" autocomplete="off" required>
                     <input type="text" id="courseInput" placeholder="Mata kuliah" aria-label="Mata kuliah" autocomplete="off">
                     <input type="date" id="deadlineInput" aria-label="Tenggat" required>
-                    <button type="submit">Tambah</button>
+                    <select id="prioritySelect" aria-label="Prioritas">
+                        <option value="tinggi">Prioritas tinggi</option>
+                        <option value="sedang" selected>Prioritas sedang</option>
+                        <option value="rendah">Prioritas rendah</option>
+                    </select>
+                    <div class="form-actions">
+                        <button type="submit" id="submitBtn">Tambah</button>
+                        <button type="button" id="cancelEdit" class="ghost" hidden>Batal</button>
+                    </div>
                 </form>
 
+                <div class="toolbar">
+                    <input type="search" id="searchInput" placeholder="Cari tugas atau mata kuliah..." aria-label="Cari tugas">
+                    <select id="filterStatus" aria-label="Filter status">
+                        <option value="semua">Semua</option>
+                        <option value="belum">Belum selesai</option>
+                        <option value="selesai">Selesai</option>
+                    </select>
+                    <button type="button" id="exportBtn">Ekspor</button>
+                    <button type="button" id="importBtn">Impor</button>
+                    <input type="file" id="importFile" accept="application/json,.json" hidden>
+                </div>
+
                 <ul id="taskList"></ul>
-                <p id="emptyMessage">Belum ada tugas. Isi form di atas, atau klik tanggal di kalender.</p>
+                <p id="emptyMessage"></p>
             </section>
         </div>
 

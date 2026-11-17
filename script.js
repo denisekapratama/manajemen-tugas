@@ -1,13 +1,19 @@
 const STORAGE_KEY = "studenthub-tasks";
 const THEME_KEY = "studenthub-theme";
 const $ = (id) => document.getElementById(id);
+const PRIO = { tinggi: 0, sedang: 1, rendah: 2 };
+const PRIO_LABEL = { tinggi: "Tinggi", sedang: "Sedang", rendah: "Rendah" };
 
 const taskForm = $("taskForm"), taskInput = $("taskInput"), courseInput = $("courseInput");
-const deadlineInput = $("deadlineInput"), taskList = $("taskList"), emptyMessage = $("emptyMessage");
+const deadlineInput = $("deadlineInput"), prioritySelect = $("prioritySelect");
+const submitBtn = $("submitBtn"), cancelEdit = $("cancelEdit");
+const searchInput = $("searchInput"), filterStatus = $("filterStatus");
+const taskList = $("taskList"), emptyMessage = $("emptyMessage");
 const calendarGrid = $("calendarGrid"), monthLabel = $("monthLabel");
 const themeToggle = $("themeToggle");
 
 let tasks = loadTasks();
+let editingId = null;
 let viewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
 /* ---------- Tema ---------- */
@@ -37,36 +43,83 @@ function loadTasks() {
 }
 function sortedTasks() {
     return tasks.slice().sort((a, b) => {
-        if (a.deadline === b.deadline) return a.id - b.id;
-        if (!a.deadline) return 1;
-        if (!b.deadline) return -1;
-        return a.deadline < b.deadline ? -1 : 1;
+        if (a.deadline !== b.deadline) {
+            if (!a.deadline) return 1;
+            if (!b.deadline) return -1;
+            return a.deadline < b.deadline ? -1 : 1;
+        }
+        const pa = PRIO[a.priority] ?? 1, pb = PRIO[b.priority] ?? 1;
+        return pa !== pb ? pa - pb : a.id - b.id;
+    });
+}
+function visibleTasks() {
+    const q = searchInput.value.trim().toLowerCase();
+    const status = filterStatus.value;
+    return sortedTasks().filter((t) => {
+        if (status === "belum" && t.completed) return false;
+        if (status === "selesai" && !t.completed) return false;
+        return q === "" || (t.name + " " + (t.course || "")).toLowerCase().includes(q);
     });
 }
 function refresh() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}
-    renderTasks(); renderCalendar(); renderStats();
+    renderTasks(); renderCalendar(); renderStats(); renderAlerts();
 }
 
-/* ---------- Tambah tugas ---------- */
+/* ---------- Tambah dan edit tugas ---------- */
+function stopEditing() {
+    editingId = null;
+    taskInput.value = ""; courseInput.value = "";
+    prioritySelect.value = "sedang";
+    deadlineInput.value = todayKey();
+    submitBtn.textContent = "Tambah";
+    cancelEdit.hidden = true;
+}
+function startEditing(task) {
+    editingId = task.id;
+    taskInput.value = task.name;
+    courseInput.value = task.course || "";
+    deadlineInput.value = task.deadline;
+    prioritySelect.value = task.priority || "sedang";
+    submitBtn.textContent = "Simpan";
+    cancelEdit.hidden = false;
+    taskInput.focus();
+}
+cancelEdit.addEventListener("click", stopEditing);
+
 taskForm.addEventListener("submit", (event) => {
     event.preventDefault();
     const name = taskInput.value.trim(), deadline = deadlineInput.value;
     if (name === "" || deadline === "") return;
-    tasks.push({ id: Date.now(), name: name, course: courseInput.value.trim(), deadline: deadline, completed: false });
-    taskInput.value = ""; courseInput.value = "";
+
+    const data = { name: name, course: courseInput.value.trim(), deadline: deadline, priority: prioritySelect.value };
+    if (editingId !== null) {
+        const t = tasks.find((x) => x.id === editingId);
+        if (t) Object.assign(t, data);
+        stopEditing();
+    } else {
+        tasks.push(Object.assign({ id: Date.now(), completed: false }, data));
+        taskInput.value = ""; courseInput.value = "";
+    }
+
     const p = deadline.split("-").map(Number);
     viewDate = new Date(p[0], p[1] - 1, 1);
     refresh();
 });
 
+searchInput.addEventListener("input", renderTasks);
+filterStatus.addEventListener("change", renderTasks);
+
 /* ---------- Daftar tugas ---------- */
 function renderTasks() {
     taskList.innerHTML = "";
     const today = todayKey();
+    const list = visibleTasks();
 
-    sortedTasks().forEach((task) => {
+    list.forEach((task) => {
         const isLate = !task.completed && task.deadline < today;
+        const prio = PRIO[task.priority] !== undefined ? task.priority : "sedang";
+
         const li = document.createElement("li");
         li.id = "task-" + task.id;
         if (task.completed) li.classList.add("done");
@@ -81,6 +134,7 @@ function renderTasks() {
         const name = document.createElement("div");
         name.className = "task-name";
         name.textContent = task.name;
+
         const meta = document.createElement("div");
         meta.className = "task-meta";
         if (task.course) {
@@ -88,6 +142,11 @@ function renderTasks() {
             tag.className = "tag"; tag.textContent = task.course;
             meta.appendChild(tag);
         }
+        const badge = document.createElement("span");
+        badge.className = "prio prio-" + prio;
+        badge.textContent = PRIO_LABEL[prio];
+        meta.appendChild(badge);
+
         const date = document.createElement("span");
         date.textContent = "Tenggat " + formatDate(task.deadline);
         meta.appendChild(date);
@@ -98,16 +157,38 @@ function renderTasks() {
         }
         info.appendChild(name); info.appendChild(meta);
 
+        const actions = document.createElement("div");
+        actions.className = "task-actions";
+
+        const edit = document.createElement("button");
+        edit.className = "edit";
+        edit.textContent = "Edit";
+        edit.addEventListener("click", () => {
+            startEditing(task);
+            taskForm.scrollIntoView({ behavior: "smooth", block: "center" });
+        });
+
         const del = document.createElement("button");
         del.className = "del";
         del.textContent = "\u00d7";
         del.setAttribute("aria-label", "Hapus tugas");
-        del.addEventListener("click", () => { tasks = tasks.filter((t) => t.id !== task.id); refresh(); });
+        del.addEventListener("click", () => {
+            if (editingId === task.id) stopEditing();
+            tasks = tasks.filter((t) => t.id !== task.id);
+            refresh();
+        });
 
-        li.appendChild(check); li.appendChild(info); li.appendChild(del);
+        actions.appendChild(edit); actions.appendChild(del);
+        li.appendChild(check); li.appendChild(info); li.appendChild(actions);
         taskList.appendChild(li);
     });
-    emptyMessage.style.display = tasks.length === 0 ? "block" : "none";
+
+    if (list.length === 0) {
+        emptyMessage.textContent = tasks.length === 0
+            ? "Belum ada tugas. Isi form di atas, atau klik tanggal di kalender."
+            : "Tidak ada tugas yang cocok dengan pencarian atau filter.";
+    }
+    emptyMessage.style.display = list.length === 0 ? "block" : "none";
 }
 
 /* ---------- Statistik, ring, sapaan ---------- */
@@ -130,9 +211,56 @@ function renderStats() {
 }
 function renderGreeting() {
     const h = new Date().getHours();
-    const word = h < 11 ? "pagi" : h < 15 ? "siang" : h < 18 ? "sore" : "malam";
+    const word = h < 4 ? "malam" : h < 11 ? "pagi" : h < 15 ? "siang" : h < 18 ? "sore" : "malam";
     $("greeting").textContent = "Selamat " + word + "!";
     $("todayLabel").textContent = new Date().toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" });
+}
+
+/* ---------- Pengingat tenggat ---------- */
+let alertsExpanded = false;
+
+function renderAlerts() {
+    const box = $("alerts");
+    box.innerHTML = "";
+
+    const today = todayKey();
+    const t = new Date();
+    t.setDate(t.getDate() + 1);
+    const tomorrow = toKey(t.getFullYear(), t.getMonth(), t.getDate());
+
+    const due = sortedTasks().filter((task) => !task.completed && task.deadline && task.deadline <= tomorrow);
+    const LIMIT = 2;
+    const shown = alertsExpanded ? due : due.slice(0, LIMIT);
+
+    shown.forEach((task) => {
+        const when = task.deadline < today ? "Terlambat" : task.deadline === today ? "Tenggat hari ini" : "Tenggat besok";
+
+        const div = document.createElement("div");
+        div.className = "alert" + (task.deadline <= today ? " urgent" : "");
+
+        const text = document.createElement("p");
+        const strong = document.createElement("strong");
+        strong.textContent = when + ": ";
+        text.appendChild(strong);
+        text.appendChild(document.createTextNode(task.name));
+
+        const btn = document.createElement("button");
+        btn.textContent = "Tandai selesai";
+        btn.addEventListener("click", () => { task.completed = true; refresh(); });
+
+        div.appendChild(text);
+        div.appendChild(btn);
+        box.appendChild(div);
+    });
+
+    if (due.length > LIMIT) {
+        const more = document.createElement("button");
+        more.type = "button";
+        more.className = "alerts-more";
+        more.textContent = alertsExpanded ? "Ciutkan" : "Lihat " + (due.length - LIMIT) + " pengingat lainnya";
+        more.addEventListener("click", () => { alertsExpanded = !alertsExpanded; renderAlerts(); });
+        box.appendChild(more);
+    }
 }
 
 /* ---------- Kalender ---------- */
@@ -141,7 +269,7 @@ function renderCalendar() {
     monthLabel.textContent = viewDate.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
     calendarGrid.innerHTML = "";
 
-    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7; // Senin = kolom pertama
+    const firstDay = (new Date(year, month, 1).getDay() + 6) % 7;
     const daysInMonth = new Date(year, month + 1, 0).getDate();
     for (let i = 0; i < firstDay; i++) calendarGrid.appendChild(document.createElement("div"));
 
@@ -171,6 +299,9 @@ function onDayClick(key) {
     const dayTasks = sortedTasks().filter((t) => t.deadline === key);
     if (dayTasks.length === 0) { deadlineInput.value = key; taskInput.focus(); return; }
 
+    if (dayTasks.some((t) => !$("task-" + t.id))) {
+        searchInput.value = ""; filterStatus.value = "semua"; renderTasks();
+    }
     const reduce = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
     $("task-" + dayTasks[0].id).scrollIntoView({ behavior: reduce ? "auto" : "smooth", block: "center" });
     dayTasks.forEach((t) => {
@@ -181,6 +312,47 @@ function onDayClick(key) {
 }
 $("prevMonth").addEventListener("click", () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1); renderCalendar(); });
 $("nextMonth").addEventListener("click", () => { viewDate = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1); renderCalendar(); });
+
+/* ---------- Ekspor dan impor ---------- */
+$("exportBtn").addEventListener("click", () => {
+    const blob = new Blob([JSON.stringify(tasks, null, 2)], { type: "application/json" });
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = "studenthub-" + todayKey() + ".json";
+    a.click();
+    setTimeout(() => URL.revokeObjectURL(a.href), 1000);
+});
+$("importBtn").addEventListener("click", () => $("importFile").click());
+$("importFile").addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    e.target.value = "";
+    if (!file) return;
+
+    const reader = new FileReader();
+    reader.onload = () => {
+        try {
+            const data = JSON.parse(reader.result);
+            if (!Array.isArray(data)) throw new Error("format");
+            const clean = data
+                .filter((t) => t && typeof t.name === "string" && /^\d{4}-\d{2}-\d{2}$/.test(t.deadline))
+                .map((t, i) => ({
+                    id: Number(t.id) || Date.now() + i,
+                    name: t.name,
+                    course: String(t.course || ""),
+                    deadline: t.deadline,
+                    priority: PRIO[t.priority] !== undefined ? t.priority : "sedang",
+                    completed: Boolean(t.completed)
+                }));
+            if (!confirm("Ganti " + tasks.length + " tugas yang ada dengan " + clean.length + " tugas dari file ini?")) return;
+            tasks = clean;
+            stopEditing();
+            refresh();
+        } catch (err) {
+            alert("File tidak bisa dibaca. Pastikan itu file hasil ekspor dari StudentHub.");
+        }
+    };
+    reader.readAsText(file);
+});
 
 /* ---------- Timer fokus ---------- */
 const BASE_TITLE = document.title;
@@ -195,23 +367,22 @@ function drawTimer() {
 function stopTimer() { clearInterval(timer); timer = null; }
 
 function playAlarm() {
-    try {
-        if (!audioCtx) return;
+    if (!audioCtx) return;
+    const start = () => {
         for (let i = 0; i < 3; i++) {
             const osc = audioCtx.createOscillator();
             const gain = audioCtx.createGain();
-            osc.type = "sine";
+            osc.type = "square";
             osc.frequency.value = 880;
+            gain.gain.value = 0.15;
             osc.connect(gain);
             gain.connect(audioCtx.destination);
             const t = audioCtx.currentTime + i * 0.5;
-            gain.gain.setValueAtTime(0.0001, t);
-            gain.gain.exponentialRampToValueAtTime(0.4, t + 0.02);
-            gain.gain.exponentialRampToValueAtTime(0.0001, t + 0.4);
             osc.start(t);
-            osc.stop(t + 0.45);
+            osc.stop(t + 0.3);
         }
-    } catch (e) {}
+    };
+    audioCtx.resume().then(start).catch(start);
 }
 
 function tick() {
@@ -265,4 +436,5 @@ let savedTheme = null;
 try { savedTheme = localStorage.getItem(THEME_KEY); } catch (e) {}
 applyTheme(savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
 deadlineInput.value = todayKey();
-renderGreeting(); renderTasks(); renderCalendar(); renderStats(); drawTimer();
+renderGreeting(); renderTasks(); renderCalendar(); renderStats(); renderAlerts(); drawTimer();
+setInterval(renderAlerts, 60 * 1000);
