@@ -251,10 +251,12 @@ function renderGreeting() {
 
 /* ---------- Pengingat tenggat ---------- */
 let alertsExpanded = false;
+let alertsHidden = false;
 
 function renderAlerts() {
     const box = $("alerts");
     box.innerHTML = "";
+    box.classList.toggle("is-hidden", alertsHidden);
 
     const today = todayKey();
     const t = new Date();
@@ -262,11 +264,23 @@ function renderAlerts() {
     const tomorrow = toKey(t.getFullYear(), t.getMonth(), t.getDate());
 
     const due = sortedTasks().filter((task) => !task.completed && task.deadline && task.deadline <= tomorrow);
+    if (due.length === 0) return;
+
+    if (alertsHidden) {
+        const show = document.createElement("button");
+        show.type = "button";
+        show.className = "alerts-toggle";
+        show.textContent = "Tampilkan pengingat (" + due.length + ")";
+        show.addEventListener("click", () => { alertsHidden = false; renderAlerts(); });
+        box.appendChild(show);
+        return;
+    }
+
     const LIMIT = 2;
     const shown = alertsExpanded ? due : due.slice(0, LIMIT);
 
     shown.forEach((task) => {
-                const when = task.deadline < today ? "Terlambat" : task.deadline === today ? "Deadline hari ini" : "Deadline besok";
+        const when = task.deadline < today ? "Terlambat" : task.deadline === today ? "Deadline hari ini" : "Deadline besok";
 
         const div = document.createElement("div");
         div.className = "alert" + (task.deadline <= today ? " urgent" : "");
@@ -286,14 +300,26 @@ function renderAlerts() {
         box.appendChild(div);
     });
 
+    const bar = document.createElement("div");
+    bar.className = "alerts-bar";
+
     if (due.length > LIMIT) {
         const more = document.createElement("button");
         more.type = "button";
         more.className = "alerts-more";
         more.textContent = alertsExpanded ? "Ciutkan" : "Lihat " + (due.length - LIMIT) + " pengingat lainnya";
         more.addEventListener("click", () => { alertsExpanded = !alertsExpanded; renderAlerts(); });
-        box.appendChild(more);
+        bar.appendChild(more);
     }
+
+    const hide = document.createElement("button");
+    hide.type = "button";
+    hide.className = "alerts-hide";
+    hide.textContent = "Sembunyikan";
+    hide.addEventListener("click", () => { alertsHidden = true; renderAlerts(); });
+    bar.appendChild(hide);
+
+    box.appendChild(bar);
 }
 
 /* ---------- Kalender ---------- */

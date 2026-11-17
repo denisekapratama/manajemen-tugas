@@ -218,3 +218,10 @@ select { text-overflow: ellipsis; }
 .grid { grid-template-columns: minmax(0, 1fr) 330px; }
 @media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } }
 input[type="date"] { min-width: 0; max-width: 100%; }
+.alerts.is-hidden { position: static; }
+.alerts-bar { display: flex; flex-wrap: wrap; gap: 8px; }
+.alerts-more, .alerts-hide, .alerts-toggle {
+    background: var(--card); color: var(--ink); padding: 8px 14px; font-size: .82rem;
+    box-shadow: 0 4px 12px rgba(0, 0, 0, .18);
+}
+.alerts-toggle { justify-self: start; }
