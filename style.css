@@ -229,3 +229,6 @@ input[type="date"] { min-width: 0; max-width: 100%; }
     .app { padding-top: max(env(safe-area-inset-top, 0px), 26px); }
     .alerts { top: max(env(safe-area-inset-top, 0px), 26px); }
 }
+@media (max-width: 640px) {
+    .toolbar { display: none; }
+}
