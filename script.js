@@ -11,6 +11,32 @@ const searchInput = $("searchInput"), filterStatus = $("filterStatus");
 const taskList = $("taskList"), emptyMessage = $("emptyMessage");
 const calendarGrid = $("calendarGrid"), monthLabel = $("monthLabel");
 const themeToggle = $("themeToggle");
+const filterCourse = $("filterCourse");
+
+const COURSES = [
+    { value: "Arkom", label: "Arkom (Arsitektur dan Organisasi Komputer)" },
+    { value: "Logika Informatika", label: "Logika Informatika" },
+    { value: "PTI", label: "PTI (Pengantar Teknologi Informasi)" },
+    { value: "Kalkulus", label: "Kalkulus" },
+    { value: "English", label: "English" },
+    { value: "Agama", label: "Agama" },
+    { value: "Pancasila", label: "Pancasila" },
+    { value: "Algoritma", label: "Algoritma (Algoritma dan Pemrograman Dasar)" }
+];
+
+function fillSelect(select, firstLabel, firstValue) {
+    select.innerHTML = "";
+    const first = document.createElement("option");
+    first.value = firstValue;
+    first.textContent = firstLabel;
+    select.appendChild(first);
+    COURSES.forEach((c) => {
+        const opt = document.createElement("option");
+        opt.value = c.value;
+        opt.textContent = c.label;
+        select.appendChild(opt);
+    });
+}
 
 let tasks = loadTasks();
 let editingId = null;
@@ -58,6 +84,7 @@ function visibleTasks() {
     return sortedTasks().filter((t) => {
         if (status === "belum" && t.completed) return false;
         if (status === "selesai" && !t.completed) return false;
+                if (filterCourse.value !== "semua" && t.course !== filterCourse.value) return false;
         return q === "" || (t.name + " " + (t.course || "")).toLowerCase().includes(q);
     });
 }
@@ -78,6 +105,11 @@ function stopEditing() {
 function startEditing(task) {
     editingId = task.id;
     taskInput.value = task.name;
+        if (task.course && !Array.from(courseInput.options).some((o) => o.value === task.course)) {
+        const extra = document.createElement("option");
+        extra.value = task.course; extra.textContent = task.course;
+        courseInput.appendChild(extra);
+    }
     courseInput.value = task.course || "";
     deadlineInput.value = task.deadline;
     prioritySelect.value = task.priority || "sedang";
@@ -109,6 +141,7 @@ taskForm.addEventListener("submit", (event) => {
 
 searchInput.addEventListener("input", renderTasks);
 filterStatus.addEventListener("change", renderTasks);
+filterCourse.addEventListener("change", renderTasks);
 
 /* ---------- Daftar tugas ---------- */
 function renderTasks() {
@@ -148,7 +181,7 @@ function renderTasks() {
         meta.appendChild(badge);
 
         const date = document.createElement("span");
-        date.textContent = "Tenggat " + formatDate(task.deadline);
+                date.textContent = "Deadline " + formatDate(task.deadline);
         meta.appendChild(date);
         if (isLate) {
             const late = document.createElement("span");
@@ -205,8 +238,8 @@ function renderStats() {
     const today = todayKey();
     const dueToday = tasks.filter((t) => !t.completed && t.deadline === today).length;
     const late = tasks.filter((t) => !t.completed && t.deadline < today).length;
-    let sub = dueToday > 0 ? "Ada " + dueToday + " tugas yang jatuh tempo hari ini." : "Tidak ada tenggat hari ini, santai dulu.";
-    if (late > 0) sub += " " + late + " tugas sudah lewat tenggat.";
+        let sub = dueToday > 0 ? "Ada " + dueToday + " tugas yang jatuh tempo hari ini." : "Tidak ada deadline hari ini, santai dulu.";
+        if (late > 0) sub += " " + late + " tugas sudah lewat deadline.";
     $("greetingSub").textContent = sub;
 }
 function renderGreeting() {
@@ -233,7 +266,7 @@ function renderAlerts() {
     const shown = alertsExpanded ? due : due.slice(0, LIMIT);
 
     shown.forEach((task) => {
-        const when = task.deadline < today ? "Terlambat" : task.deadline === today ? "Tenggat hari ini" : "Tenggat besok";
+                const when = task.deadline < today ? "Terlambat" : task.deadline === today ? "Deadline hari ini" : "Deadline besok";
 
         const div = document.createElement("div");
         div.className = "alert" + (task.deadline <= today ? " urgent" : "");
@@ -435,6 +468,8 @@ $("timerReset").addEventListener("click", () => {
 let savedTheme = null;
 try { savedTheme = localStorage.getItem(THEME_KEY); } catch (e) {}
 applyTheme(savedTheme || (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light"));
+fillSelect(courseInput, "Mata kuliah (opsional)", "");
+fillSelect(filterCourse, "Semua mata kuliah", "semua");
 deadlineInput.value = todayKey();
 renderGreeting(); renderTasks(); renderCalendar(); renderStats(); renderAlerts(); drawTimer();
 setInterval(renderAlerts, 60 * 1000);

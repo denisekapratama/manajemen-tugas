@@ -54,7 +54,7 @@
 
                                 <form id="taskForm">
                     <input type="text" id="taskInput" placeholder="Tambah tugas baru..." aria-label="Nama tugas" autocomplete="off" required>
-                    <input type="text" id="courseInput" placeholder="Mata kuliah" aria-label="Mata kuliah" autocomplete="off">
+                    <select id="courseInput" aria-label="Mata kuliah"></select>
                     <input type="date" id="deadlineInput" aria-label="Tenggat" required>
                     <select id="prioritySelect" aria-label="Prioritas">
                         <option value="tinggi">Prioritas tinggi</option>
@@ -74,6 +74,7 @@
                         <option value="belum">Belum selesai</option>
                         <option value="selesai">Selesai</option>
                     </select>
+                                        <select id="filterCourse" aria-label="Filter mata kuliah"></select>
                     <button type="button" id="exportBtn">Ekspor</button>
                     <button type="button" id="importBtn">Impor</button>
                     <input type="file" id="importFile" accept="application/json,.json" hidden>
