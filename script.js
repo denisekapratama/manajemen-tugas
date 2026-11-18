@@ -103,10 +103,18 @@ function setCompleted(task, value) {
     else delete task.completedAt;
     refresh();
 }
-
+/* Kirim daftar tugas ke app Android (kalau dibuka lewat app StudentHub) */
+function syncToAndroid() {
+    try {
+        if (window.Android && typeof window.Android.syncTasks === "function") {
+            window.Android.syncTasks(JSON.stringify(tasks));
+        }
+    } catch (e) {}
+}
 function refresh() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}
     renderTasks(); renderCalendar(); renderStats(); renderAlerts();
+        syncToAndroid();
 }
 
 /* ---------- Tambah dan edit tugas ---------- */
@@ -514,3 +522,4 @@ fillSelect(filterCourse, "Semua mata kuliah", "semua");
 deadlineInput.value = todayKey();
 renderGreeting(); renderTasks(); renderCalendar(); renderStats(); renderAlerts(); drawTimer();
 setInterval(renderAlerts, 60 * 1000);
+syncToAndroid();
