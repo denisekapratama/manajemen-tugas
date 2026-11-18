@@ -39,6 +39,8 @@ function fillSelect(select, firstLabel, firstValue) {
 }
 
 let tasks = loadTasks();
+tasks.forEach((t) => { if (t.completed && !t.completedAt) t.completedAt = Date.now(); });
+try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}
 let editingId = null;
 let viewDate = new Date(new Date().getFullYear(), new Date().getMonth(), 1);
 
@@ -82,12 +84,26 @@ function visibleTasks() {
     const q = searchInput.value.trim().toLowerCase();
     const status = filterStatus.value;
     return sortedTasks().filter((t) => {
+                if (isHidden(t) && status !== "selesai") return false;
         if (status === "belum" && t.completed) return false;
         if (status === "selesai" && !t.completed) return false;
                 if (filterCourse.value !== "semua" && t.course !== filterCourse.value) return false;
         return q === "" || (t.name + " " + (t.course || "")).toLowerCase().includes(q);
     });
 }
+const HIDE_AFTER_MS = 3 * 24 * 60 * 60 * 1000;
+
+function isHidden(task) {
+    return task.completed && task.completedAt && Date.now() - task.completedAt > HIDE_AFTER_MS;
+}
+
+function setCompleted(task, value) {
+    task.completed = value;
+    if (value) task.completedAt = Date.now();
+    else delete task.completedAt;
+    refresh();
+}
+
 function refresh() {
     try { localStorage.setItem(STORAGE_KEY, JSON.stringify(tasks)); } catch (e) {}
     renderTasks(); renderCalendar(); renderStats(); renderAlerts();
@@ -161,7 +177,7 @@ function renderTasks() {
         check.className = "check";
         check.textContent = "\u2713";
         check.setAttribute("aria-label", task.completed ? "Tandai belum selesai" : "Tandai selesai");
-        check.addEventListener("click", () => { task.completed = !task.completed; refresh(); });
+                check.addEventListener("click", () => setCompleted(task, !task.completed));
 
         const info = document.createElement("div");
         const name = document.createElement("div");
@@ -293,8 +309,7 @@ function renderAlerts() {
 
         const btn = document.createElement("button");
         btn.textContent = "Tandai selesai";
-        btn.addEventListener("click", () => { task.completed = true; refresh(); });
-
+                btn.addEventListener("click", () => setCompleted(task, true));
         div.appendChild(text);
         div.appendChild(btn);
         box.appendChild(div);
@@ -334,7 +349,7 @@ function renderCalendar() {
 
     for (let day = 1; day <= daysInMonth; day++) {
         const key = toKey(year, month, day);
-        const dayTasks = tasks.filter((t) => t.deadline === key);
+                const dayTasks = tasks.filter((t) => t.deadline === key && !isHidden(t));
         const btn = document.createElement("button");
         btn.type = "button";
         btn.className = "day" + (key === today ? " today" : "");
@@ -355,7 +370,7 @@ function renderCalendar() {
     }
 }
 function onDayClick(key) {
-    const dayTasks = sortedTasks().filter((t) => t.deadline === key);
+        const dayTasks = sortedTasks().filter((t) => t.deadline === key && !isHidden(t));
     if (dayTasks.length === 0) { deadlineInput.value = key; taskInput.focus(); return; }
 
     if (dayTasks.some((t) => !$("task-" + t.id))) {
